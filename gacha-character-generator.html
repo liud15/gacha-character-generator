@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gacha Character Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f1a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; font-weight: 800; letter-spacing: .02em; }
+    header p  { margin-top: .5rem; opacity: .85; font-size: .95rem; }
+
+    /* ── Main layout ── */
+    main { max-width: 1400px; margin: 0 auto; padding: 2rem 1rem; }
+
+    /* ── Panel ── */
+    .panel {
+      background: #1a1a2e;
+      border: 1px solid #2d2d4e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .panel h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #a78bfa;
+    }
+
+    /* ── Controls row ── */
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+    .control-group { display: flex; flex-direction: column; gap: .4rem; }
+    .control-group label { font-size: .8rem; color: #94a3b8; }
+
+    input[type="number"], input[type="file"] {
+      background: #0f0f1a;
+      border: 1px solid #3d3d6e;
+      border-radius: 8px;
+      color: #e2e8f0;
+      padding: .5rem .75rem;
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="number"]:focus, input[type="file"]:focus { border-color: #7c3aed; }
+    input[type="number"] { width: 100px; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: .6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:hover  { opacity: .9; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    .btn-primary  { background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; }
+    .btn-success  { background: linear-gradient(135deg, #059669, #10b981); color: #fff; }
+    .btn-danger   { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; }
+    .btn-outline  { background: transparent; border: 1px solid #3d3d6e; color: #e2e8f0; }
+    .btn-sm       { padding: .4rem .9rem; font-size: .82rem; }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      background: #0f0f1a;
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+      margin-top: .75rem;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #2563eb);
+      border-radius: 999px;
+      width: 0%;
+      transition: width .3s ease;
+    }
+
+    /* ── Status log ── */
+    #statusLog {
+      background: #0a0a14;
+      border: 1px solid #2d2d4e;
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      height: 140px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: .8rem;
+      color: #94a3b8;
+      margin-top: .75rem;
+    }
+    #statusLog .log-ok   { color: #34d399; }
+    #statusLog .log-warn { color: #fbbf24; }
+    #statusLog .log-err  { color: #f87171; }
+    #statusLog .log-info { color: #60a5fa; }
+
+    /* ── Action bar ── */
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    .results-count { margin-left: auto; font-size: .85rem; color: #94a3b8; }
+
+    /* ── Card grid ── */
+    #cardGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    /* ── Card ── */
+    .char-card {
+      background: #1a1a2e;
+      border: 2px solid #2d2d4e;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color .2s, transform .2s;
+      position: relative;
+    }
+    .char-card:hover { transform: translateY(-3px); border-color: #4c4c8e; }
+    .char-card.selected { border-color: #7c3aed; }
+
+    .card-img-wrap {
+      position: relative;
+      width: 100%;
+      padding-top: 100%;
+      overflow: hidden;
+      background: #0f0f1a;
+    }
+    .card-img-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .card-img-wrap .img-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: #3d3d6e;
+    }
+
+    /* Badge */
+    .badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: .2rem .55rem;
+      border-radius: 999px;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      z-index: 2;
+    }
+    .badge-new  { background: #059669; color: #fff; }
+    .badge-dup  { background: #dc2626; color: #fff; }
+
+    /* Checkbox overlay */
+    .card-checkbox-wrap {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 2;
+    }
+    .card-checkbox-wrap input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #7c3aed;
+      cursor: pointer;
+    }
+
+    .card-body {
+      padding: .75rem;
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+      flex: 1;
+    }
+    .card-name {
+      font-size: .9rem;
+      font-weight: 700;
+      line-height: 1.3;
+      color: #e2e8f0;
+    }
+    .card-source {
+      font-size: .75rem;
+      color: #7c3aed;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-favs {
+      font-size: .75rem;
+      color: #94a3b8;
+    }
+    .card-gender select {
+      width: 100%;
+      background: #0f0f1a;
+      border: 1px solid #3d3d6e;
+      border-radius: 6px;
+      color: #e2e8f0;
+      padding: .35rem .5rem;
+      font-size: .8rem;
+      cursor: pointer;
+    }
+
+    /* ── Preview section ── */
+    #previewSection { display: none; }
+    #previewJson {
+      background: #0a0a14;
+      border: 1px solid #2d2d4e;
+      border-radius: 8px;
+      padding: 1rem;
+      width: 100%;
+      height: 320px;
+      color: #a5f3fc;
+      font-family: 'Courier New', monospace;
+      font-size: .8rem;
+      resize: vertical;
+      outline: none;
+    }
+
+    /* ── Empty state ── */
+    #emptyState {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: #4a4a7a;
+    }
+    #emptyState .icon { font-size: 4rem; margin-bottom: 1rem; }
+    #emptyState p { font-size: 1rem; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f0f1a; }
+    ::-webkit-scrollbar-thumb { background: #3d3d6e; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎴 Gacha Character Generator</h1>
+  <p>Obtén los personajes más populares de MyAnimeList y exporta un JSON listo para tu bot de gacha</p>
+</header>
+
+<main>
+
+  <!-- ── Control Panel ── -->
+  <div class="panel">
+    <h2>⚙️ Configuración</h2>
+    <div class="controls-row">
+
+      <div class="control-group">
+        <label for="jsonFile">📂 Cargar characters.json existente</label>
+        <input type="file" id="jsonFile" accept=".json" />
+      </div>
+
+      <div class="control-group">
+        <label for="jsonStatus">Estado del JSON cargado</label>
+        <span id="jsonStatus" style="font-size:.85rem;color:#94a3b8;">Sin cargar</span>
+      </div>
+
+      <div class="control-group">
+        <label for="pageCount">Páginas a buscar (1–20)</label>
+        <input type="number" id="pageCount" value="3" min="1" max="20" />
+      </div>
+
+      <div class="control-group" style="flex-direction:row;gap:.5rem;align-items:flex-end;">
+        <button class="btn btn-primary" id="searchBtn" onclick="startSearch()">🔍 Buscar Personajes</button>
+        <button class="btn btn-outline btn-sm" onclick="stopSearch()" id="stopBtn" disabled>⏹ Detener</button>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div id="progressWrap" style="display:none;margin-top:.75rem;">
+      <div style="font-size:.8rem;color:#94a3b8;margin-bottom:.3rem;">
+        <span id="progressText">Cargando…</span>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+
+    <!-- Log -->
+    <div id="statusLog"></div>
+  </div>
+
+  <!-- ── Action bar ── -->
+  <div class="action-bar" id="actionBar" style="display:none;">
+    <button class="btn btn-success btn-sm" onclick="selectAllNew()">✅ Seleccionar todos los nuevos</button>
+    <button class="btn btn-outline btn-sm"  onclick="deselectAll()">☐ Deseleccionar todos</button>
+    <span class="results-count" id="resultsCount"></span>
+  </div>
+
+  <!-- ── Card Grid ── -->
+  <div id="emptyState">
+    <div class="icon">🎴</div>
+    <p>Configura las opciones y pulsa <strong>Buscar Personajes</strong> para empezar.</p>
+  </div>
+  <div id="cardGrid" style="display:none;"></div>
+
+  <!-- ── Preview + Export ── -->
+  <div class="panel" id="previewSection" style="margin-top:1.5rem;">
+    <h2>📄 Preview / Exportar</h2>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <button class="btn btn-primary btn-sm" onclick="buildPreview()">👁 Ver Preview</button>
+      <button class="btn btn-success btn-sm" onclick="exportJson()">💾 Exportar JSON</button>
+    </div>
+    <textarea id="previewJson" readonly placeholder="El JSON aparecerá aquí después de pulsar 'Ver Preview'…"></textarea>
+  </div>
+
+</main>
+
+<script>
+// ──────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────
+let existingChars = [];   // names (normalised) from characters.json
+let lastId        = 0;    // highest numeric id from characters.json
+let characters    = [];   // fetched from Jikan
+let aborted       = false;
+
+// ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+function normaliseName(n) {
+  return n
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function calcValue(favs) {
+  const randomInRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  if (favs < 1000)  return randomInRange(500, 1000);
+  if (favs < 10000) return randomInRange(1000, 3000);
+  if (favs < 50000) return randomInRange(3000, 6000);
+  return randomInRange(6000, 10000);
+}
+
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+// ──────────────────────────────────────────────
+// Logging
+// ──────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const el = document.getElementById('statusLog');
+  const line = document.createElement('div');
+  line.className = `log-${type}`;
+  const ts = new Date().toLocaleTimeString();
+  line.textContent = `[${ts}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ──────────────────────────────────────────────
+// Load characters.json
+// ──────────────────────────────────────────────
+document.getElementById('jsonFile').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('El JSON debe ser un array');
+      existingChars = data.map(c => normaliseName(c.name || ''));
+      // find highest numeric id
+      lastId = data.reduce((max, c) => {
+        const n = parseInt(c.id, 10);
+        return isNaN(n) ? max : Math.max(max, n);
+      }, 0);
+      const status = `✅ ${data.length} personajes cargados (último ID: ${lastId})`;
+      document.getElementById('jsonStatus').textContent = status;
+      document.getElementById('jsonStatus').style.color = '#34d399';
+      log(status, 'ok');
+      // re-render if cards already exist
+      if (characters.length) renderCards();
+    } catch (err) {
+      document.getElementById('jsonStatus').textContent = '❌ Error al parsear JSON';
+      document.getElementById('jsonStatus').style.color = '#f87171';
+      log('Error al parsear characters.json: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+});
+
+// ──────────────────────────────────────────────
+// Search
+// ──────────────────────────────────────────────
+async function startSearch() {
+  const pages = parseInt(document.getElementById('pageCount').value, 10);
+  if (isNaN(pages) || pages < 1 || pages > 20) {
+    log('Número de páginas inválido (1–20)', 'warn');
+    return;
+  }
+
+  aborted = false;
+  characters = [];
+  document.getElementById('searchBtn').disabled  = true;
+  document.getElementById('stopBtn').disabled    = false;
+  document.getElementById('progressWrap').style.display = '';
+  document.getElementById('emptyState').style.display   = 'none';
+  document.getElementById('cardGrid').style.display     = 'none';
+  document.getElementById('actionBar').style.display    = 'none';
+  document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('cardGrid').innerHTML = '';
+  document.getElementById('statusLog').innerHTML = '';
+
+  const setProgress = (pct, txt) => {
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressText').textContent = txt;
+  };
+
+  // ── Fetch top character pages ──
+  const rawChars = [];
+  for (let p = 1; p <= pages; p++) {
+    if (aborted) break;
+    log(`Obteniendo página ${p}/${pages}…`, 'info');
+    setProgress(Math.round((p - 1) / pages * 50), `Página ${p}/${pages}`);
+    try {
+      const res  = await fetch(`https://api.jikan.moe/v4/top/characters?page=${p}&limit=25`);
+      if (!res.ok) {
+        const detail = res.status === 429 ? 'Límite de peticiones excedido, esperando…' : `HTTP ${res.status}`;
+        throw new Error(detail);
+      }
+      const json = await res.json();
+      const data = json.data || [];
+      rawChars.push(...data);
+      log(`  → ${data.length} personajes obtenidos`, 'ok');
+    } catch (err) {
+      log(`Error en página ${p}: ${err.message}`, 'err');
+    }
+    await sleep(400);
+  }
+
+  if (aborted) {
+    log('Búsqueda detenida por el usuario.', 'warn');
+    resetButtons();
+    return;
+  }
+
+  log(`Total personajes obtenidos: ${rawChars.length}`, 'info');
+
+  // ── Fetch anime source for each character ──
+  for (let i = 0; i < rawChars.length; i++) {
+    if (aborted) break;
+    const c = rawChars[i];
+    const pct = 50 + Math.round((i / rawChars.length) * 50);
+    setProgress(pct, `Obteniendo anime ${i + 1}/${rawChars.length}…`);
+
+    let source = 'Desconocido';
+    try {
+      const res  = await fetch(`https://api.jikan.moe/v4/characters/${c.mal_id}/anime`);
+      if (res.ok) {
+        const json = await res.json();
+        const first = (json.data || [])[0];
+        if (first && first.anime && first.anime.title) {
+          source = first.anime.title;
+        }
+      } else if (res.status === 429) {
+        log(`Límite de peticiones al obtener anime de "${c.name}", usando Desconocido.`, 'warn');
+      }
+    } catch (_) { /* keep Desconocido */ }
+
+    characters.push({
+      mal_id:    c.mal_id,
+      name:      c.name,
+      favorites: c.favorites || 0,
+      img:       c.images?.jpg?.image_url || '',
+      source,
+    });
+
+    // 350ms delay after every request to stay within Jikan rate limit (3 req/s)
+    await sleep(350);
+  }
+
+  if (aborted) {
+    log('Búsqueda detenida por el usuario.', 'warn');
+    resetButtons();
+    return;
+  }
+
+  setProgress(100, 'Completado');
+  log(`✅ Búsqueda completada: ${characters.length} personajes procesados.`, 'ok');
+  renderCards();
+  resetButtons();
+}
+
+function stopSearch() {
+  aborted = true;
+}
+
+function resetButtons() {
+  document.getElementById('searchBtn').disabled = false;
+  document.getElementById('stopBtn').disabled   = true;
+}
+
+// ──────────────────────────────────────────────
+// Render cards
+// ──────────────────────────────────────────────
+function renderCards() {
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+
+  let newCount = 0, dupCount = 0;
+
+  characters.forEach((char, idx) => {
+    const isDup = existingChars.includes(normaliseName(char.name));
+    if (isDup) dupCount++; else newCount++;
+
+    const card = document.createElement('div');
+    card.className = 'char-card';
+    card.dataset.idx = idx;
+
+    const imgHtml = char.img
+      ? `<img src="${escHtml(char.img)}" alt="${escHtml(char.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+         <div class="img-placeholder" style="display:none">🎭</div>`
+      : `<div class="img-placeholder">🎭</div>`;
+
+    const favsFormatted = char.favorites.toLocaleString('es-ES');
+    const badgeClass = isDup ? 'badge-dup' : 'badge-new';
+    const badgeText  = isDup ? 'DUPLICADO' : 'NUEVO';
+
+    card.innerHTML = `
+      <div class="card-img-wrap">
+        ${imgHtml}
+        <span class="badge ${badgeClass}">${badgeText}</span>
+        <div class="card-checkbox-wrap">
+          <input type="checkbox" id="chk${idx}" ${isDup ? '' : 'checked'} onchange="updateCardStyle(${idx})">
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${escHtml(char.name)}</div>
+        <div class="card-source" title="${escHtml(char.source)}">${escHtml(char.source)}</div>
+        <div class="card-favs">❤️ ${favsFormatted} favoritos</div>
+        <div class="card-gender">
+          <select id="gender${idx}">
+            <option value="Mujer" selected>Mujer</option>
+            <option value="Hombre">Hombre</option>
+            <option value="desconocido">desconocido</option>
+          </select>
+        </div>
+      </div>`;
+
+    grid.appendChild(card);
+    updateCardStyle(idx);
+  });
+
+  document.getElementById('cardGrid').style.display = '';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('actionBar').style.display = '';
+  document.getElementById('previewSection').style.display = '';
+  updateResultsCount();
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function updateCardStyle(idx) {
+  const chk  = document.getElementById(`chk${idx}`);
+  const card = document.querySelector(`.char-card[data-idx="${idx}"]`);
+  if (!chk || !card) return;
+  card.classList.toggle('selected', chk.checked);
+  updateResultsCount();
+}
+
+function updateResultsCount() {
+  const total    = characters.length;
+  const selected = document.querySelectorAll('#cardGrid input[type="checkbox"]:checked').length;
+  document.getElementById('resultsCount').textContent =
+    `${selected} seleccionados de ${total} personajes`;
+}
+
+// ──────────────────────────────────────────────
+// Selection helpers
+// ──────────────────────────────────────────────
+function selectAllNew() {
+  characters.forEach((char, idx) => {
+    const isDup = existingChars.includes(normaliseName(char.name));
+    const chk   = document.getElementById(`chk${idx}`);
+    if (chk) chk.checked = !isDup;
+    updateCardStyle(idx);
+  });
+}
+
+function deselectAll() {
+  characters.forEach((_c, idx) => {
+    const chk = document.getElementById(`chk${idx}`);
+    if (chk) chk.checked = false;
+    updateCardStyle(idx);
+  });
+}
+
+// ──────────────────────────────────────────────
+// Preview + Export
+// ──────────────────────────────────────────────
+function buildJsonArray() {
+  let nextId = lastId;
+  const result = [];
+
+  characters.forEach((char, idx) => {
+    const chk = document.getElementById(`chk${idx}`);
+    if (!chk || !chk.checked) return;
+
+    nextId++;
+    const gender = document.getElementById(`gender${idx}`)?.value || 'Mujer';
+    result.push({
+      id:     String(nextId),
+      name:   char.name,
+      gender,
+      value:  String(calcValue(char.favorites)),
+      source: char.source,
+      img:    char.img ? [char.img] : [],
+      vid:    [],
+      user:   null,
+      status: 'Libre',
+      votes:  0,
+      aliases: [],
+    });
+  });
+
+  return result;
+}
+
+function buildPreview() {
+  const arr = buildJsonArray();
+  document.getElementById('previewJson').value =
+    arr.length ? JSON.stringify(arr, null, 2) : '// Ningún personaje seleccionado.';
+}
+
+function exportJson() {
+  const arr = buildJsonArray();
+  if (!arr.length) { log('No hay personajes seleccionados para exportar.', 'warn'); return; }
+  const blob = new Blob([JSON.stringify(arr, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'new_characters.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  log(`✅ Exportado new_characters.json con ${arr.length} personajes.`, 'ok');
+}
+</script>
+</body>
+</html>
